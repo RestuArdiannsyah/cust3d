@@ -1,0 +1,29 @@
+/* 1. Import font paling atas */
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap");
+
+/* 2. Variable global & custom styling */
+:root {
+  font-family: "Figtree", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  /* hitam ke ungu */
+  background-color: #070016;
+  /* hitam ke biru */
+  color: white;
+}
+
+/* .figtree- {
+  font-family: "Figtree", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+} */
+
+/* 3. Custom font class */
+.caveat {
+  font-family: "Caveat", cursive;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
+/* 4. Tailwind import paling terakhir */
+@import "tailwindcss";

@@ -1,0 +1,62 @@
+# ============================
+# LOG FILES
+# ============================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================
+# DEPENDENCIES
+# ============================
+node_modules/
+
+# ============================
+# BUILD OUTPUT
+# ============================
+dist/
+dist-ssr/
+build/
+
+# ============================
+# ENVIRONMENT FILES
+# ============================
+.env
+.env.*
+!.env.example
+
+# Jangan pernah upload firebase service-account
+serviceAccountKey.json
+firebase-service-account.json
+
+# Firebase local emulator data
+.firebase/
+firestore-debug.log
+ui-debug.log
+database-debug.log
+
+# ============================
+# LOCAL FILES
+# ============================
+*.local
+
+# ============================
+# EDITOR FILES
+# ============================
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+
+# Visual Studio files
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ignore OS-specific files
+Thumbs.db
