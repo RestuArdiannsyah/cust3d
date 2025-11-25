@@ -26,6 +26,35 @@ export const ProtectedRoute = ({ children }) => {
 };
 
 /**
+ * User Protected Route - Hanya bisa diakses jika sudah login dan role = user
+ */
+export const UserProtectedRoute = ({ children }) => {
+  const { user, userData, loading } = useAuth();
+
+  // Tampilkan loading saat mengecek auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  // Jika tidak login, redirect ke login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Jika role = owner, redirect ke owner dashboard
+  if (userData?.role === "owner") {
+    return <Navigate to="/owner/dashboard" replace />;
+  }
+
+  // Jika sudah login dan role = user, tampilkan halaman
+  return children;
+};
+
+/**
  * Public Route - Hanya bisa diakses jika belum login
  * Jika sudah login, redirect ke home
  */

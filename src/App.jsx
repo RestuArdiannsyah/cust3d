@@ -1,6 +1,12 @@
 import { createBrowserRouter } from "react-router-dom";
 import { lazy } from "react";
-import { ProtectedRoute, PublicRoute } from "./components/ProtectedRoute";
+import { 
+  ProtectedRoute, 
+  PublicRoute, 
+  UserProtectedRoute 
+} from "./components/ProtectedRoute";
+import { OwnerProtectedRoute } from "./components/OwnerProtectedRoute";
+import { ProfileRouter } from "./components/ProfileRouter";
 
 // Lazy pages
 const Layout = lazy(() => import("./layout/Layout"));
@@ -9,13 +15,22 @@ const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ProfileLayout = lazy(() => import("./layout/ProfileLayout"));
+const OwnerLayout = lazy(() => import("./layout/OwnerLayout"));
 
-// profile pages
+// Profile pages (User)
 const Info = lazy(() => import("./fragments/profile/info/Info"));
 const Pengaturan = lazy(() =>
   import("./fragments/profile/pengaturan/Pengaturan")
 );
 const Pesanan = lazy(() => import("./fragments/profile/pesanan/Pesanan"));
+
+// Owner pages
+const Dashboard = lazy(() => import("./pages/owner/Dashboard"));
+const Produk = lazy(() => import("./pages/owner/Produk"));
+const PesananOwner = lazy(() => import("./pages/owner/Pesanan"));
+const Pelanggan = lazy(() => import("./pages/owner/Pelanggan"));
+const Laporan = lazy(() => import("./pages/owner/Laporan"));
+const PengaturanOwner = lazy(() => import("./pages/owner/Pengaturan"));
 
 const router = createBrowserRouter([
   // Public Routes - Hanya bisa diakses jika BELUM login
@@ -44,13 +59,23 @@ const router = createBrowserRouter([
     ),
   },
 
-  // Profile Routes dengan Layout - Hanya bisa diakses jika SUDAH login
+  // Profile Router - Redirect otomatis berdasarkan role
+  {
+    path: "/profile-redirect",
+    element: (
+      <ProtectedRoute>
+        <ProfileRouter />
+      </ProtectedRoute>
+    ),
+  },
+
+  // Profile Routes (User) - Hanya untuk role "user"
   {
     path: "/profile",
     element: (
-      <ProtectedRoute>
+      <UserProtectedRoute>
         <ProfileLayout />
-      </ProtectedRoute>
+      </UserProtectedRoute>
     ),
     children: [
       {
@@ -58,12 +83,48 @@ const router = createBrowserRouter([
         element: <Info />,
       },
       {
-        path: "pengaturan", // /profile/settings
+        path: "pengaturan", // /profile/pengaturan
         element: <Pengaturan />,
       },
       {
-        path: "pesanan", // /profile/settings
+        path: "pesanan", // /profile/pesanan
         element: <Pesanan />,
+      },
+    ],
+  },
+
+  // Owner Routes - Hanya untuk role "owner"
+  {
+    path: "/owner",
+    element: (
+      <OwnerProtectedRoute>
+        <OwnerLayout />
+      </OwnerProtectedRoute>
+    ),
+    children: [
+      {
+        path: "dashboard", // /owner/dashboard
+        element: <Dashboard />,
+      },
+      {
+        path: "produk", // /owner/produk
+        element: <Produk />,
+      },
+      {
+        path: "pesanan", // /owner/pesanan
+        element: <PesananOwner />,
+      },
+      {
+        path: "pelanggan", // /owner/pelanggan
+        element: <Pelanggan />,
+      },
+      {
+        path: "laporan", // /owner/laporan
+        element: <Laporan />,
+      },
+      {
+        path: "pengaturan", // /owner/pengaturan
+        element: <PengaturanOwner />,
       },
     ],
   },
