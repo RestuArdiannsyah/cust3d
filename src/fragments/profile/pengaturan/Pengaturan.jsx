@@ -22,6 +22,7 @@ const Pengaturan = () => {
 
   return (
     <div className="space-y-4">
+
       {/* EDIT PROFILE */}
       <button
         className="w-full px-6 py-3 rounded-xl bg-purple-600 text-white font-semibold 
@@ -50,6 +51,7 @@ const Pengaturan = () => {
       >
         {isLoggingOut ? "Logging out..." : "Logout"}
       </button>
+
     </div>
   );
 };
