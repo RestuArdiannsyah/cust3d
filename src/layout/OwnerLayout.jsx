@@ -12,14 +12,14 @@ const OwnerLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex">
+    <div className="flex-1 flex flex-col min-h-screen lg:ml-64">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Header dengan tombol menu untuk mobile */}
-        <header className="lg:hidden bg-zinc-900/50 backdrop-blur-sm border-b border-white/10 p-4">
+        <header className="lg:hidden fixed backdrop-blur-sm border-b border-white/10 p-4">
           <button
             onClick={toggleSidebar}
             className="text-zinc-400 hover:text-white"
@@ -29,7 +29,7 @@ const OwnerLayout = () => {
         </header>
 
         {/* Content Area */}
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-6 overflow-auto mt-16 lg:mt-0">
           <Outlet />
         </main>
 

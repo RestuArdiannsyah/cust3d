@@ -31,6 +31,8 @@ const PesananOwner = lazy(() => import("./pages/owner/Pesanan"));
 const Pelanggan = lazy(() => import("./pages/owner/Pelanggan"));
 const Laporan = lazy(() => import("./pages/owner/Laporan"));
 const PengaturanOwner = lazy(() => import("./pages/owner/Pengaturan"));
+const TambahProduk = lazy(() => import("./pages/owner/produk/TambahProduk"));
+const DetailProduk = lazy(() => import("./pages/owner/produk/DetailProduk"));
 
 const router = createBrowserRouter([
   // Public Routes - Hanya bisa diakses jika BELUM login
@@ -125,6 +127,16 @@ const router = createBrowserRouter([
       {
         path: "pengaturan", // /owner/pengaturan
         element: <PengaturanOwner />,
+      },
+
+      // produk lainnya
+      {
+        path: "tambah-produk", // /owner/tambah-produk
+        element: <TambahProduk />,
+      },
+      {
+        path: "detail-produk/:id", // /owner/tambah-produk
+        element: <DetailProduk />,
       },
     ],
   },

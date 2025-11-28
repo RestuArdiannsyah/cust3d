@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
   ShoppingBag, 
@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
+  const location = useLocation();
+
   const menuItems = [
     { path: "/owner/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/owner/produk", label: "Produk", icon: Package },
@@ -31,9 +33,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-zinc-900/50 backdrop-blur-sm border-r border-white/10 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
+        className={`fixed lg:fixed inset-y-0 left-0 z-50 w-64 backdrop-blur-sm border-r border-white/10 transform transition-transform duration-300 ease-in-out ${
+  isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+}`}
       >
         <div className="flex flex-col h-full">
           {/* Header Sidebar */}
@@ -51,18 +53,31 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {menuItems.map((item) => {
               const Icon = item.icon;
+
+              // Custom active rule for Produk
+              const isProdukActive =
+                location.pathname.startsWith("/owner/produk") ||
+                location.pathname.startsWith("/owner/tambah-produk") ||
+                location.pathname.startsWith("/owner/detail-produk");
+
+              const active =
+                item.path === "/owner/produk"
+                  ? isProdukActive
+                  : location.pathname === item.path;
+
               return (
                 <NavLink
                   key={item.path}
                   to={item.path}
                   onClick={() => window.innerWidth < 1024 && toggleSidebar()}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all ${
-                      isActive
+                  className={`
+                    flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all
+                    ${
+                      active
                         ? "bg-white/5 border border-white/10 text-white"
                         : "text-zinc-400 hover:bg-white/5 hover:text-white"
-                    }`
-                  }
+                    }
+                  `}
                 >
                   <Icon size={20} />
                   <span>{item.label}</span>

@@ -5,10 +5,58 @@ import {
   updateProfile 
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "../FirebaseConfig"; // Sesuaikan dengan path config Firebase Anda
+import { auth, db } from "../FirebaseConfig";
 
 // Provider Google
 const googleProvider = new GoogleAuthProvider();
+
+/**
+ * Fungsi untuk menyimpan data user ke Cache Storage
+ */
+const saveUserToCache = async (userData) => {
+  try {
+    const cache = await caches.open('user-data-cache');
+    const userResponse = new Response(JSON.stringify(userData), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    await cache.put('/user-data', userResponse);
+    console.log('Data user berhasil disimpan ke cache');
+  } catch (error) {
+    console.error('Error menyimpan ke cache:', error);
+  }
+};
+
+/**
+ * Fungsi untuk mengambil data user dari Cache Storage
+ */
+export const getUserFromCache = async () => {
+  try {
+    const cache = await caches.open('user-data-cache');
+    const response = await cache.match('/user-data');
+    
+    if (response) {
+      const userData = await response.json();
+      return userData;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error mengambil dari cache:', error);
+    return null;
+  }
+};
+
+/**
+ * Fungsi untuk menghapus data user dari Cache Storage
+ */
+export const clearUserCache = async () => {
+  try {
+    const cache = await caches.open('user-data-cache');
+    await cache.delete('/user-data');
+    console.log('Cache user berhasil dihapus');
+  } catch (error) {
+    console.error('Error menghapus cache:', error);
+  }
+};
 
 /**
  * Register dengan Email & Password
@@ -17,12 +65,10 @@ export const registerWithEmail = async (userData) => {
   try {
     const { firstName, lastName, email, password } = userData;
 
-    // Validasi input
     if (!firstName || !lastName || !email || !password) {
       throw new Error("Semua field harus diisi");
     }
 
-    // Buat user di Firebase Authentication
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,
@@ -31,13 +77,11 @@ export const registerWithEmail = async (userData) => {
 
     const user = userCredential.user;
 
-    // Update display name
     await updateProfile(user, {
       displayName: `${firstName} ${lastName}`,
     });
 
-    // Simpan data user ke Firestore
-    await setDoc(doc(db, "users", user.uid), {
+    const userDocData = {
       uid: user.uid,
       nama: `${firstName} ${lastName}`,
       firstName: firstName,
@@ -54,7 +98,20 @@ export const registerWithEmail = async (userData) => {
       terakhirLogin: serverTimestamp(),
       provider: "email",
       status: "active",
-    });
+    };
+
+    await setDoc(doc(db, "users", user.uid), userDocData);
+
+    // Simpan data user ke cache
+    const cacheData = {
+      uid: user.uid,
+      nama: `${firstName} ${lastName}`,
+      email: email,
+      photoURL: user.photoURL || null,
+      role: "user",
+      provider: "email"
+    };
+    await saveUserToCache(cacheData);
 
     return {
       success: true,
@@ -64,7 +121,6 @@ export const registerWithEmail = async (userData) => {
   } catch (error) {
     console.error("Error saat registrasi:", error);
     
-    // Handle Firebase error messages
     let errorMessage = "Terjadi kesalahan saat registrasi";
     
     switch (error.code) {
@@ -96,20 +152,17 @@ export const registerWithEmail = async (userData) => {
  */
 export const registerWithGoogle = async () => {
   try {
-    // Sign in dengan Google
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
 
-    // Cek apakah user sudah ada di Firestore
     const userDoc = await getDoc(doc(db, "users", user.uid));
 
-    // Jika user belum ada, buat dokumen baru
     if (!userDoc.exists()) {
       const namaParts = user.displayName?.split(" ") || ["", ""];
       const firstName = namaParts[0] || "";
       const lastName = namaParts.slice(1).join(" ") || "";
 
-      await setDoc(doc(db, "users", user.uid), {
+      const userDocData = {
         uid: user.uid,
         nama: user.displayName || "",
         firstName: firstName,
@@ -126,9 +179,10 @@ export const registerWithGoogle = async () => {
         terakhirLogin: serverTimestamp(),
         provider: "google",
         status: "active",
-      });
+      };
+
+      await setDoc(doc(db, "users", user.uid), userDocData);
     } else {
-      // Update terakhir login jika user sudah ada
       await setDoc(
         doc(db, "users", user.uid),
         {
@@ -137,6 +191,17 @@ export const registerWithGoogle = async () => {
         { merge: true }
       );
     }
+
+    // Simpan data user ke cache
+    const cacheData = {
+      uid: user.uid,
+      nama: user.displayName || "",
+      email: user.email,
+      photoURL: user.photoURL || null,
+      role: userDoc.exists() ? userDoc.data().role : "user",
+      provider: "google"
+    };
+    await saveUserToCache(cacheData);
 
     return {
       success: true,
@@ -174,15 +239,12 @@ export const registerWithGoogle = async () => {
  */
 export const loginWithEmail = async (email, password) => {
   try {
-    // Validasi input
     if (!email || !password) {
       throw new Error("Email dan password harus diisi");
     }
 
-    // Import signInWithEmailAndPassword
     const { signInWithEmailAndPassword } = await import("firebase/auth");
 
-    // Login ke Firebase Authentication
     const userCredential = await signInWithEmailAndPassword(
       auth,
       email,
@@ -191,7 +253,6 @@ export const loginWithEmail = async (email, password) => {
 
     const user = userCredential.user;
 
-    // Update terakhir login di Firestore
     await setDoc(
       doc(db, "users", user.uid),
       {
@@ -199,6 +260,21 @@ export const loginWithEmail = async (email, password) => {
       },
       { merge: true }
     );
+
+    // Ambil data user dari Firestore
+    const userDocSnap = await getDoc(doc(db, "users", user.uid));
+    const userDocData = userDocSnap.exists() ? userDocSnap.data() : {};
+
+    // Simpan data user ke cache
+    const cacheData = {
+      uid: user.uid,
+      nama: userDocData.nama || user.displayName || "",
+      email: user.email,
+      photoURL: user.photoURL || userDocData.photoURL || null,
+      role: userDocData.role || "user",
+      provider: userDocData.provider || "email"
+    };
+    await saveUserToCache(cacheData);
 
     return {
       success: true,
@@ -208,7 +284,6 @@ export const loginWithEmail = async (email, password) => {
   } catch (error) {
     console.error("Error saat login:", error);
 
-    // Handle Firebase error messages
     let errorMessage = "Terjadi kesalahan saat login";
 
     switch (error.code) {
@@ -249,20 +324,17 @@ export const loginWithEmail = async (email, password) => {
  */
 export const loginWithGoogle = async () => {
   try {
-    // Sign in dengan Google
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
 
-    // Cek apakah user sudah ada di Firestore
     const userDoc = await getDoc(doc(db, "users", user.uid));
 
-    // Jika user belum ada, buat dokumen baru (user baru yang login lewat Google di halaman login)
     if (!userDoc.exists()) {
       const namaParts = user.displayName?.split(" ") || ["", ""];
       const firstName = namaParts[0] || "";
       const lastName = namaParts.slice(1).join(" ") || "";
 
-      await setDoc(doc(db, "users", user.uid), {
+      const userDocData = {
         uid: user.uid,
         nama: user.displayName || "",
         firstName: firstName,
@@ -279,9 +351,10 @@ export const loginWithGoogle = async () => {
         terakhirLogin: serverTimestamp(),
         provider: "google",
         status: "active",
-      });
+      };
+
+      await setDoc(doc(db, "users", user.uid), userDocData);
     } else {
-      // Update terakhir login jika user sudah ada
       await setDoc(
         doc(db, "users", user.uid),
         {
@@ -290,6 +363,21 @@ export const loginWithGoogle = async () => {
         { merge: true }
       );
     }
+
+    // Ambil data user dari Firestore
+    const userDocSnap = await getDoc(doc(db, "users", user.uid));
+    const userDocData = userDocSnap.exists() ? userDocSnap.data() : {};
+
+    // Simpan data user ke cache
+    const cacheData = {
+      uid: user.uid,
+      nama: user.displayName || "",
+      email: user.email,
+      photoURL: user.photoURL || null,
+      role: userDocData.role || "user",
+      provider: "google"
+    };
+    await saveUserToCache(cacheData);
 
     return {
       success: true,
@@ -333,6 +421,9 @@ export const logout = async () => {
     const { signOut } = await import("firebase/auth");
     await signOut(auth);
     
+    // Hapus cache saat logout
+    await clearUserCache();
+    
     return {
       success: true,
       message: "Logout berhasil",
@@ -355,14 +446,12 @@ export const resetPassword = async (email) => {
       throw new Error("Email harus diisi");
     }
 
-    // Cek apakah email terdaftar di Firestore
     const { collection, query, where, getDocs } = await import("firebase/firestore");
     
     const usersRef = collection(db, "users");
     const q = query(usersRef, where("email", "==", email));
     const querySnapshot = await getDocs(q);
 
-    // Jika email tidak ditemukan di database
     if (querySnapshot.empty) {
       return {
         success: false,
@@ -370,7 +459,6 @@ export const resetPassword = async (email) => {
       };
     }
 
-    // Jika email ditemukan, kirim reset password email
     const { sendPasswordResetEmail } = await import("firebase/auth");
     await sendPasswordResetEmail(auth, email);
 
