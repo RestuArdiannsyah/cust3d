@@ -1,12 +1,13 @@
 import { createBrowserRouter } from "react-router-dom";
 import { lazy } from "react";
-import { 
-  ProtectedRoute, 
-  PublicRoute, 
-  UserProtectedRoute 
+import {
+  ProtectedRoute,
+  PublicRoute,
+  UserProtectedRoute,
 } from "./components/ProtectedRoute";
 import { OwnerProtectedRoute } from "./components/OwnerProtectedRoute";
 import { ProfileRouter } from "./components/ProfileRouter";
+import Toko from "./pages/Toko";
 
 // Lazy pages
 const Layout = lazy(() => import("./layout/Layout"));
@@ -52,6 +53,10 @@ const router = createBrowserRouter([
       </PublicRoute>
     ),
   },
+  // {
+  //   path: "/toko",
+  //   element: <Toko />,
+  // },
   {
     path: "/reset-password",
     element: (
@@ -59,6 +64,11 @@ const router = createBrowserRouter([
         <ForgotPassword />
       </ProtectedRoute>
     ),
+  },
+
+  {
+    path: "/toko",
+    element: <Toko />,
   },
 
   // Profile Router - Redirect otomatis berdasarkan role
