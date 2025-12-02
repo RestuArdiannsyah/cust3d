@@ -1,6 +1,7 @@
 import React from "react";
 import HomeFrame from "../fragments/home/HomeFrame";
 import AboutFrame from "../fragments/about/AboutFrame";
+import AlurPemesananFrame from "../fragments/alurPemesanan/AlurPemesananFrame";
 import ProdukFrame from "../fragments/produk/ProdukFrame";
 import Testimoni from "../fragments/testimoni/Testimoni";
 import KontakFrame from "../fragments/kontak/KontakFrame";
@@ -15,6 +16,10 @@ const Home = () => {
 
       <section id="tentang-kami">
         <AboutFrame />
+      </section>
+
+      <section id="alur-pemesanan">
+        <AlurPemesananFrame />
       </section>
 
       <section id="produk">

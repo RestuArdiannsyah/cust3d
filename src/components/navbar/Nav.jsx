@@ -16,7 +16,7 @@ const Nav = () => {
       </a>
 
       <a
-        href="#tentang-kami"
+        href="#alur-pemesanan"
         className="hover:text-blue-600 transition duration-300 hover:font-semibold w-full md:w-auto"
       >
         Alur Pemesanan
