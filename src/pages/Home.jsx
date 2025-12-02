@@ -2,6 +2,7 @@ import React from "react";
 import HomeFrame from "../fragments/home/HomeFrame";
 import AboutFrame from "../fragments/about/AboutFrame";
 import ProdukFrame from "../fragments/produk/ProdukFrame";
+import Testimoni from "../fragments/testimoni/Testimoni";
 import KontakFrame from "../fragments/kontak/KontakFrame";
 import Footer from "../fragments/footer/Footer";
 
@@ -18,6 +19,10 @@ const Home = () => {
 
       <section id="produk">
         <ProdukFrame />
+      </section>
+
+      <section id="testimoni">
+        <Testimoni />
       </section>
 
       <section id="kontak">

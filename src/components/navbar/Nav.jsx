@@ -30,7 +30,7 @@ const Nav = () => {
       </a>
 
       <a
-        href="#produk"
+        href="#testimoni"
         className="hover:text-blue-600 transition duration-300 hover:font-semibold w-full md:w-auto"
       >
         Testimoni
