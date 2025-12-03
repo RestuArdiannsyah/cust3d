@@ -12,15 +12,32 @@ const googleProvider = new GoogleAuthProvider();
 
 /**
  * Fungsi untuk menyimpan data user ke Cache Storage
+ * EXPORTED agar bisa digunakan oleh ProfileServices
  */
-const saveUserToCache = async (userData) => {
+export const saveUserToCache = async (userData) => {
   try {
     const cache = await caches.open('user-data-cache');
-    const userResponse = new Response(JSON.stringify(userData), {
+    
+    // Ambil data cache yang ada
+    const existingResponse = await cache.match('/user-data');
+    let existingData = {};
+    
+    if (existingResponse) {
+      existingData = await existingResponse.json();
+    }
+    
+    // Merge data baru dengan data yang ada
+    const mergedData = {
+      ...existingData,
+      ...userData
+    };
+    
+    const userResponse = new Response(JSON.stringify(mergedData), {
       headers: { 'Content-Type': 'application/json' }
     });
+    
     await cache.put('/user-data', userResponse);
-    console.log('Data user berhasil disimpan ke cache');
+    console.log('Data user berhasil disimpan/diupdate ke cache');
   } catch (error) {
     console.error('Error menyimpan ke cache:', error);
   }
@@ -36,8 +53,10 @@ export const getUserFromCache = async () => {
     
     if (response) {
       const userData = await response.json();
+      console.log('Data loaded from cache:', userData);
       return userData;
     }
+    console.log('No cache found');
     return null;
   } catch (error) {
     console.error('Error mengambil dari cache:', error);

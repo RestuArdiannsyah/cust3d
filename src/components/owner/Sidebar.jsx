@@ -1,16 +1,27 @@
-import { NavLink, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  ShoppingBag, 
-  Users, 
+import { Link, NavLink, useLocation } from "react-router-dom";
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  Users,
   Settings,
   Package,
   BarChart3,
-  X
+  X,
 } from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
+
+  const { user, userData } = useAuth();
+
+  const name = userData?.nama || user?.displayName || "User";
+  const photo = userData?.photoURL || user?.photoURL;
+  const initial =
+    userData?.firstName?.[0] ||
+    user?.email?.[0]?.toUpperCase() ||
+    name[0]?.toUpperCase() ||
+    "C";
 
   const menuItems = [
     { path: "/owner/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -33,14 +44,22 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:fixed inset-y-0 left-0 z-50 w-64 backdrop-blur-sm border-r border-white/10 transform transition-transform duration-300 ease-in-out ${
-  isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-}`}
+        className={`fixed lg:fixed inset-y-0 left-0 z-50 w-[285px] backdrop-blur-sm border-r border-white/10 transform transition-transform duration-300 ease-in-out ${
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
       >
         <div className="flex flex-col h-full">
           {/* Header Sidebar */}
           <div className="flex items-center justify-between p-6 border-b border-white/10">
-            <h2 className="text-xl font-bold text-white">Owner Panel</h2>
+            <h2 className="text-xl font-bold text-white">
+              Owner Panel{" "}
+              <Link
+                to="/"
+                className="caveat hover:underline transition duration-300"
+              >
+                Cust3d
+              </Link>
+            </h2>
             <button
               onClick={toggleSidebar}
               className="lg:hidden text-zinc-400 hover:text-white"
@@ -86,17 +105,49 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             })}
           </nav>
 
-          {/* Footer Sidebar */}
+          {/* Footer Sidebar - Profile */}
           <div className="p-4 border-t border-white/10">
-            <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/5">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                O
+            <NavLink
+              to="/owner/profile"
+              onClick={() => window.innerWidth < 1024 && toggleSidebar()}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                  isActive
+                    ? "bg-white/10 text-white border border-white/10"
+                    : "hover:bg-white/10 hover:text-white"
+                }`
+              }
+            >
+              {/* Profile Image or Initial */}
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                {photo ? (
+                  <img
+                    src={photo}
+                    alt={name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback jika gambar error
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "flex";
+                    }}
+                  />
+                ) : null}
+                <span
+                  className="text-white font-bold"
+                  style={{ display: photo ? "none" : "flex" }}
+                >
+                  {initial}
+                </span>
               </div>
-              <div>
-                <p className="text-sm font-medium text-white">Owner</p>
-                <p className="text-xs text-zinc-400">owner@example.com</p>
+
+              {/* User Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">
+                  {name}
+                </p>
+                <p className="text-xs text-zinc-400 truncate">{user?.email}</p>
               </div>
-            </div>
+            </NavLink>
           </div>
         </div>
       </aside>

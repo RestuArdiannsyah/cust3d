@@ -74,27 +74,19 @@ const Toko = () => {
 
   // ---------------------- PRODUCT CARD ----------------------
   const ProductCard = ({ product }) => (
-    <Link
-      to={`/produk/${product.id}`}
-      className="group relative block border border-white/10 rounded-3xl
-                 bg-linear-to-br from-white/5 to-white/0.2 backdrop-blur-md p-6 
-                 shadow-2xl hover:shadow-purple-500/20 transition-all duration-500 
-                 hover:scale-[1.02] hover:border-purple-500/30 overflow-hidden
-                 cursor-pointer"
+    <div
+      className="relative block border border-white/10 rounded-3xl
+                p-6
+               shadow-2xl overflow-hidden hover:bg-white/10 hover:border-white/20 
+               transition duration-300"
     >
-      {/* Hover Overlay */}
-      <div
-        className="absolute inset-0 bg-linear-to-br from-purple-500/0 via-pink-500/0 to-purple-500/0 
-                   opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-3xl"
-      />
-
       {/* Gambar Produk */}
       <div className="relative overflow-hidden rounded-2xl mb-5 bg-white/5 flex items-center justify-center h-64">
         {product.gambar ? (
           <img
             src={product.gambar}
             alt={product.namaProduk}
-            className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+            className="w-full h-full object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-white/10 text-white/50">
@@ -113,16 +105,18 @@ const Toko = () => {
           {product.hargaRupiah}
         </p>
 
-        {/* Tombol Detail ikut berubah saat card di-hover */}
-        <div
-          className="w-full mt-3 py-3 px-4 text-center border font-semibold border-white/10 rounded-lg 
-                     transition duration-300
-                     group-hover:bg-white group-hover:text-black"
+        {/* Tombol Detail */}
+        <Link
+          to={`/produk/${product.id}`}
+          className="block w-full mt-3 py-3 px-4 text-center border font-semibold 
+                   border-white/20 rounded-lg cursor-pointer
+                   transition duration-300
+                   hover:bg-white hover:text-black"
         >
           Lihat Detail
-        </div>
+        </Link>
       </div>
-    </Link>
+    </div>
   );
 
   // ---------------------- TAB BUTTON ----------------------

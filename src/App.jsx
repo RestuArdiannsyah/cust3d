@@ -8,12 +8,14 @@ import {
 import { OwnerProtectedRoute } from "./components/OwnerProtectedRoute";
 import { ProfileRouter } from "./components/ProfileRouter";
 import Toko from "./pages/Toko";
+import Profile from "./pages/owner/Profile";
 
-// Lazy pages
+// pages
 const Layout = lazy(() => import("./layout/Layout"));
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
+const Checkout = lazy(() => import("./pages/Checkout"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ProfileLayout = lazy(() => import("./layout/ProfileLayout"));
 const OwnerLayout = lazy(() => import("./layout/OwnerLayout"));
@@ -69,6 +71,16 @@ const router = createBrowserRouter([
   {
     path: "/toko",
     element: <Toko />,
+  },
+
+  // checkout
+  {
+    path: "/checkout",
+    element: (
+      <ProtectedRoute>
+        <Checkout />
+      </ProtectedRoute>
+    ),
   },
 
   // Profile Router - Redirect otomatis berdasarkan role
@@ -138,7 +150,10 @@ const router = createBrowserRouter([
         path: "pengaturan", // /owner/pengaturan
         element: <PengaturanOwner />,
       },
-
+      {
+        path: "profile", // /owner/profile
+        element: <Profile />,
+      },
       // produk lainnya
       {
         path: "tambah-produk", // /owner/tambah-produk
