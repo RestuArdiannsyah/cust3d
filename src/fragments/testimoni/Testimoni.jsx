@@ -21,14 +21,14 @@ const testimonialData = [
       "Pengiriman cepat dan hasil gantungan kunci sangat rapi. Bakal order lagi!",
   },
   {
-    initial: "R",
-    name: "Rizky Saputra",
-    message: "Desain stiker sesuai contoh dan bahannya tebal. Terima kasih!",
+    initial: "N",
+    name: "Nandika Rizky Prapanca",
+    message: "Bahannya bagus tidak mudah terkelupas!",
   },
   {
-    initial: "M",
-    name: "Melani Oktavia",
-    message: "Gantungan kunci customnya unik banget, cocok buat kado!",
+    initial: "T",
+    name: "Taufan Afandi",
+    message: "Bagus Kualitasnya oke",
   },
 ];
 
