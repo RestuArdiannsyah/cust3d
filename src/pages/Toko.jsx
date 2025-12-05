@@ -107,13 +107,13 @@ const Toko = () => {
 
         {/* Tombol Detail */}
         <Link
-          to={`/produk/${product.id}`}
+          to={`/checkout/${product.id}`}
           className="block w-full mt-3 py-3 px-4 text-center border font-semibold 
                    border-white/20 rounded-lg cursor-pointer
                    transition duration-300
                    hover:bg-white hover:text-black"
         >
-          Lihat Detail
+          Beli Sekarang
         </Link>
       </div>
     </div>
