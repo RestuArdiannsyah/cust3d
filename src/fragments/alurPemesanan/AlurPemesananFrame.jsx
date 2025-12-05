@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const AlurPemesananFrame = () => {
-  const [ukuran, setUkuran] = useState("5mm");        // DEFAULT
+  const [ukuran, setUkuran] = useState("5cm");        // DEFAULT
   const [totalGantungan, setTotalGantungan] = useState(5);
   const [foto, setFoto] = useState(null);
   const [metode, setMetode] = useState("cod");        // DEFAULT
@@ -12,7 +12,7 @@ const AlurPemesananFrame = () => {
 
   const navigate = useNavigate();
 
-  const pilihanUkuran = ["5mm", "6mm", "7mm", "8mm", "9mm", "10mm"];
+  const pilihanUkuran = ["5cm", "6cm", "7cm", "8cm", "9cm", "10cm"];
   const pilihanMetode = [
     { value: "transfer", label: "Transfer Bank" },
     { value: "ewallet", label: "E-Wallet" },
@@ -34,7 +34,7 @@ const AlurPemesananFrame = () => {
   };
 
   const ulangiPembelian = () => {
-    setUkuran("5mm");           // RESET DEFAULT
+    setUkuran("5cm");           // RESET DEFAULT
     setMetode("cod");           // RESET DEFAULT
     setFoto(null);
     setTotalGantungan(5);
@@ -91,7 +91,7 @@ const AlurPemesananFrame = () => {
             <div className="bg-white/5 p-6 sm:p-8 rounded-xl border border-white/10">
               <h2 className="text-2xl font-bold mb-5">1. Pilih Ukuran</h2>
               <p className="mb-6 text-zinc-400">
-                Tersedia ukuran 5mm hingga 10mm
+                Tersedia ukuran 5cm hingga 10cm
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
