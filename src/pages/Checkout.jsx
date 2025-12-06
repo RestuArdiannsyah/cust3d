@@ -18,6 +18,7 @@ import {
   Maximize2,
   ShoppingBag,
   LogOut,
+  Ruler,
 } from "lucide-react";
 import { getProdukById } from "../services/produk/ProdukServices";
 import { useAuth } from "../hooks/useAuth";
@@ -60,6 +61,9 @@ const Checkout = () => {
   const [imageLimitReached, setImageLimitReached] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true);
 
+  // State untuk sistem ukuran
+  const [selectedUkuran, setSelectedUkuran] = useState(null);
+
   // =========================================================================
   // EFFECT: Setup beforeunload event untuk mencegah keluar tanpa konfirmasi
   // =========================================================================
@@ -89,6 +93,7 @@ const Checkout = () => {
       setQuantity(savedData.quantity || 5);
       setShippingMethod(savedData.shippingMethod || "reguler");
       setUploadedImages(savedData.uploadedImages || []);
+      setSelectedUkuran(savedData.selectedUkuran || null);
     }
   }, [id]);
 
@@ -102,12 +107,13 @@ const Checkout = () => {
         quantity,
         shippingMethod,
         uploadedImages,
+        selectedUkuran,
         lastUpdated: new Date().toISOString(),
       };
       saveLocalStorageData(id, dataToSave);
       setHasUnsavedChanges(true);
     }
-  }, [id, quantity, shippingMethod, uploadedImages, produk]);
+  }, [id, quantity, shippingMethod, uploadedImages, selectedUkuran, produk]);
 
   // =========================================================================
   // EFFECT: Update upload error dan batas gambar
@@ -143,6 +149,7 @@ const Checkout = () => {
         quantity,
         shippingMethod,
         uploadedImages: newImages,
+        selectedUkuran,
         lastUpdated: new Date().toISOString(),
       };
       saveLocalStorageData(id, dataToSave);
@@ -159,10 +166,17 @@ const Checkout = () => {
       // Jika ada produk dari state (navigasi sebelumnya)
       if (location.state?.product) {
         if (isMounted) {
+          const productData = location.state.product;
           setProduk({
-            ...location.state.product,
-            hargaRupiah: formatHarga(location.state.product.harga),
+            ...productData,
+            hargaRupiah: formatHarga(productData.harga),
           });
+
+          // Set ukuran default jika produk memiliki ukuran
+          if (productData.ukuran && productData.ukuran.length > 0) {
+            setSelectedUkuran(productData.ukuran[0]); // Default: ukuran pertama
+          }
+
           setLoading(false);
         }
       } else if (id) {
@@ -178,6 +192,12 @@ const Checkout = () => {
                 hargaRupiah: formatHarga(result.data.harga),
               };
               setProduk(produkData);
+
+              // Set ukuran default jika produk memiliki ukuran
+              if (produkData.ukuran && produkData.ukuran.length > 0) {
+                setSelectedUkuran(produkData.ukuran[0]); // Default: ukuran pertama
+              }
+
               setError(null);
             } else {
               setError(result.error || "Produk tidak ditemukan");
@@ -219,6 +239,13 @@ const Checkout = () => {
     } else if (type === "decrement" && quantity > 5) {
       setQuantity((prev) => prev - 1);
     }
+  };
+
+  // =========================================================================
+  // HANDLER: Pilih ukuran
+  // =========================================================================
+  const handleSelectUkuran = (ukuran) => {
+    setSelectedUkuran(ukuran);
   };
 
   // =========================================================================
@@ -346,10 +373,42 @@ const Checkout = () => {
   };
 
   // =========================================================================
+  // HELPER: Hitung harga berdasarkan ukuran yang dipilih
+  // =========================================================================
+  const getHargaProduk = () => {
+    if (!produk) return 0;
+
+    // Jika ada ukuran yang dipilih, gunakan harga dari ukuran tersebut
+    if (selectedUkuran && selectedUkuran.harga) {
+      return selectedUkuran.harga;
+    }
+
+    // Jika tidak ada ukuran yang dipilih, gunakan harga default produk
+    return produk.harga || 0;
+  };
+
+  // =========================================================================
+  // HELPER: Format harga dengan ukuran dalam kurung
+  // =========================================================================
+  const formatHargaWithUkuran = (harga, ukuranNama) => {
+    const hargaFormatted = formatHarga(harga);
+    if (ukuranNama) {
+      return `${hargaFormatted}(${ukuranNama})`;
+    }
+    return hargaFormatted;
+  };
+
+  // =========================================================================
   // HANDLER: Proses checkout
   // =========================================================================
   const handleCheckout = (e) => {
     e.preventDefault();
+
+    // Validasi pilihan ukuran (jika produk memiliki ukuran)
+    if (produk.ukuran && produk.ukuran.length > 0 && !selectedUkuran) {
+      alert("Harap pilih ukuran produk terlebih dahulu.");
+      return;
+    }
 
     // Validasi alamat pengiriman
     const userAddress = getUserAddress();
@@ -369,7 +428,8 @@ const Checkout = () => {
     }
 
     // Hitung total biaya
-    const subtotal = calculateSubtotal(produk, quantity);
+    const hargaSatuan = getHargaProduk();
+    const subtotal = hargaSatuan * quantity;
     const shippingCost = calculateShipping(subtotal, shippingMethod);
     const total = calculateTotal(subtotal, shippingCost);
     const productDistribution = calculateProductDistribution(
@@ -382,7 +442,7 @@ const Checkout = () => {
       produk: {
         id: produk.id,
         namaProduk: produk.namaProduk,
-        harga: produk.harga,
+        harga: hargaSatuan,
         deskripsi: produk.deskripsi,
         gambar: produk.gambarUtama || produk.gambar?.[0],
       },
@@ -391,6 +451,7 @@ const Checkout = () => {
       shippingCost,
       subtotal,
       total,
+      ukuran: selectedUkuran,
       customer: userData
         ? {
             uid: userData.uid,
@@ -421,8 +482,8 @@ const Checkout = () => {
 
     // Simulasi proses checkout
     alert(
-      `Checkout berhasil!\n\nOrder ID: ${
-        orderData.orderId
+      `Checkout berhasil!\n\nOrder ID: ${orderData.orderId}\nUkuran: ${
+        selectedUkuran?.nama || "Standar"
       }\nTotal: ${formatHarga(
         orderData.total
       )}\n\nPesanan akan diproses dalam 1x24 jam.`
@@ -507,9 +568,15 @@ const Checkout = () => {
     quantity,
     uploadedImages
   );
-  const subtotal = calculateSubtotal(produk, quantity);
+  const hargaSatuan = getHargaProduk();
+  const subtotal = hargaSatuan * quantity;
   const shippingCost = calculateShipping(subtotal, shippingMethod);
   const total = calculateTotal(subtotal, shippingCost);
+
+  // Tentukan apakah produk memiliki ukuran
+  const memilikiUkuran =
+    produk.ukuran && Array.isArray(produk.ukuran) && produk.ukuran.length > 0;
+  const jumlahUkuran = memilikiUkuran ? produk.ukuran.length : 0;
 
   return (
     <div className="min-h-screen">
@@ -626,8 +693,10 @@ const Checkout = () => {
                   <h3 className="font-bold text-xl mb-2">
                     {produk.namaProduk}
                   </h3>
-                  <p className="font-semibold text-lg mb-4">
-                    {formatHarga(produk.harga)}
+
+                  {/* Display Harga dengan ukuran dalam kurung */}
+                  <p className="font-semibold text-lg mb-4 ">
+                    {formatHargaWithUkuran(hargaSatuan)}
                   </p>
 
                   {produk.deskripsi && (
@@ -636,7 +705,36 @@ const Checkout = () => {
                     </p>
                   )}
 
-                  <div className="flex items-center gap-4">
+                  {/* Pilihan Ukuran dalam bentuk tombol berjejer */}
+                  {memilikiUkuran && (
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-white/70">Pilih Ukuran:</span>
+                      </div>
+
+                      {/* Container tombol ukuran berjejer */}
+                      <div className="flex flex-wrap gap-2">
+                        {produk.ukuran.map((ukuran, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleSelectUkuran(ukuran)}
+                            className={`px-4 py-2 rounded-lg border transition-all duration-200 cursor-pointer
+                              ${
+                                selectedUkuran &&
+                                selectedUkuran.nama === ukuran.nama
+                                  ? "border-blue-500 bg-blue-500/10 text-blue-300"
+                                  : "border-white/10 hover:border-white/20 hover:bg-white/5"
+                              }`}
+                          >
+                            <div className="font-medium">{ukuran.nama}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-4 mt-4">
                     <span className="text-white/70">Jumlah (min. 5):</span>
                     <div className="flex items-center gap-3">
                       <button
@@ -1004,6 +1102,26 @@ const Checkout = () => {
               </h2>
 
               <div className="space-y-4 mb-6">
+                {/* Info Produk dan Ukuran */}
+                <div className="mb-4 p-3 bg-white/5 rounded-lg">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-white/70">Produk:</span>
+                    <span>{produk.namaProduk}</span>
+                  </div>
+                  {selectedUkuran && (
+                    <div className="flex justify-between mb-2">
+                      <span className="text-white/70">Ukuran:</span>
+                      <span className="font-medium">{selectedUkuran.nama}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-white/70">Harga Satuan:</span>
+                    <span className="font-semibold">
+                      {formatHargaWithUkuran(hargaSatuan)}
+                    </span>
+                  </div>
+                </div>
+
                 <div className="flex justify-between">
                   <span className="text-white/70">
                     Subtotal ({quantity} item)
@@ -1044,10 +1162,16 @@ const Checkout = () => {
               {/* Tombol Checkout */}
               <button
                 onClick={userAddress ? handleCheckout : null}
-                disabled={!userAddress || uploadedImages.length === 0}
+                disabled={
+                  !userAddress ||
+                  uploadedImages.length === 0 ||
+                  (memilikiUkuran && !selectedUkuran)
+                }
                 className={`w-full py-4 rounded-xl font-bold text-lg transition-all
                   ${
-                    !userAddress || uploadedImages.length === 0
+                    !userAddress ||
+                    uploadedImages.length === 0 ||
+                    (memilikiUkuran && !selectedUkuran)
                       ? "bg-white/10 text-white/60 cursor-not-allowed"
                       : "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
                   }`}
@@ -1056,6 +1180,8 @@ const Checkout = () => {
                   ? "Tambahkan Alamat Pengiriman"
                   : uploadedImages.length === 0
                   ? "Upload Gambar Terlebih Dahulu"
+                  : memilikiUkuran && !selectedUkuran
+                  ? "Pilih Ukuran Terlebih Dahulu"
                   : "Buat Pesanan"}
               </button>
 

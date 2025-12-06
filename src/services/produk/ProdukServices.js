@@ -146,13 +146,18 @@ const compressMultipleImages = async (files, onProgress) => {
 
 /**
  * Fungsi untuk menambah produk baru ke Firestore dengan multiple gambar
- * TIDAK ADA VALIDASI UKURAN FILE - Semua file akan dikompresi otomatis
+ * MENDUKUNG SISTEM UKURAN DENGAN HARGA BERBEDA (SEDERHANA)
  */
 export const tambahProduk = async (productData, imageFiles, onProgress) => {
   try {
     // Validasi input
-    if (!productData.namaProduk || !productData.harga || !productData.deskripsi) {
-      throw new Error("Semua field harus diisi");
+    if (!productData.namaProduk || !productData.deskripsi) {
+      throw new Error("Nama produk dan deskripsi harus diisi");
+    }
+
+    // Jika tidak ada ukuran, validasi harga default
+    if (!productData.ukuran && (!productData.harga || productData.harga <= 0)) {
+      throw new Error("Harga produk harus valid");
     }
 
     if (!imageFiles || imageFiles.length === 0) {
@@ -162,9 +167,6 @@ export const tambahProduk = async (productData, imageFiles, onProgress) => {
     if (imageFiles.length > 5) {
       throw new Error("Maksimal 5 gambar produk");
     }
-
-    // TIDAK ADA VALIDASI UKURAN FILE
-    // Semua gambar akan dikompresi otomatis
 
     // Ambil data user dari cache
     const userData = await getUserFromCache();
@@ -179,7 +181,7 @@ export const tambahProduk = async (productData, imageFiles, onProgress) => {
     // Siapkan data produk untuk disimpan
     const produkBaru = {
       namaProduk: productData.namaProduk,
-      harga: Number(productData.harga),
+      harga: productData.harga || 0, // Harga default (0 jika ada ukuran)
       deskripsi: productData.deskripsi,
       gambar: compressedImages.map(img => img.base64), // Array Base64 strings
       gambarUtama: compressedImages[0].base64, // Gambar pertama sebagai utama
@@ -194,10 +196,21 @@ export const tambahProduk = async (productData, imageFiles, onProgress) => {
       status: "aktif"
     };
 
+    // Tambahkan data ukuran jika ada
+    if (productData.ukuran && productData.ukuran.length > 0) {
+      produkBaru.ukuran = productData.ukuran;
+    }
+
     // Simpan ke Firestore collection "produk"
     const docRef = await addDoc(collection(db, "produk"), produkBaru);
 
     console.log("✅ Produk berhasil ditambahkan dengan ID:", docRef.id);
+    console.log("📊 Data produk:", {
+      nama: productData.namaProduk,
+      hargaDefault: productData.harga,
+      jumlahUkuran: productData.ukuran ? productData.ukuran.length : 0,
+      jumlahGambar: compressedImages.length
+    });
 
     return {
       success: true,
@@ -247,13 +260,18 @@ export const updateProduk = async (productId, productData, imageFiles = null, on
       }
     };
 
+    // Tambahkan data ukuran jika ada
+    if (productData.ukuran && productData.ukuran.length > 0) {
+      updateData.ukuran = productData.ukuran;
+    } else if (productData.ukuran === null) {
+      updateData.ukuran = null;
+    }
+
     if (imageFiles && imageFiles.length > 0) {
       if (imageFiles.length > 5) {
         throw new Error("Maksimal 5 gambar produk");
       }
 
-      // TIDAK ADA VALIDASI UKURAN FILE
-      
       const compressedImages = await compressMultipleImages(imageFiles, onProgress);
       updateData.gambar = compressedImages.map(img => img.base64);
       updateData.gambarUtama = compressedImages[0].base64;

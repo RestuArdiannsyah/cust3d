@@ -151,6 +151,7 @@ const Produk = () => {
               image={produk.gambar}
               name={produk.namaProduk}
               price={produk.harga}
+               ukuran={produk.ukuran}
             />
           ))}
         </div>

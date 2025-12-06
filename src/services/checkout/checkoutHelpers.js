@@ -86,10 +86,9 @@ export const calculateProductDistribution = (quantity, uploadedImages) => {
   return distribution;
 };
 
-// Hitung subtotal
-export const calculateSubtotal = (produk, quantity) => {
-  if (!produk) return 0;
-  return produk.harga * quantity;
+// Hitung subtotal berdasarkan harga satuan (ukuran yang dipilih) dan quantity
+export const calculateSubtotal = (hargaSatuan, quantity) => {
+  return hargaSatuan * quantity;
 };
 
 // Hitung biaya pengiriman
@@ -281,4 +280,11 @@ export const removeExcessImages = (uploadedImages, newQuantity) => {
   cleanupImageURLs(imagesToRemove);
   
   return imagesToKeep;
+};
+
+
+
+// Untuk backward compatibility, tetap pertahankan fungsi yang menerima produk
+export const calculateSubtotalFromProduk = (produk, quantity) => {
+  return (produk?.harga || 0) * quantity;
 };

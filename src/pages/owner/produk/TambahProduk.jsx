@@ -8,10 +8,18 @@ const TambahProduk = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [compressionProgress, setCompressionProgress] = useState(null);
+  
+  // State untuk ukuran
+  const [ukuranList, setUkuranList] = useState([]);
+  const [showTambahUkuran, setShowTambahUkuran] = useState(false);
+  const [ukuranForm, setUkuranForm] = useState({
+    nama: "",
+    harga: "",
+  });
 
   const [formData, setFormData] = useState({
     namaProduk: "",
-    harga: "",
+    harga: "", // Harga default untuk produk tanpa ukuran
     deskripsi: "",
   });
 
@@ -21,7 +29,8 @@ const TambahProduk = () => {
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        setFormData(parsed);
+        setFormData(parsed.formData || formData);
+        setUkuranList(parsed.ukuranList || []);
       } catch (e) {
         console.error("Error loading draft:", e);
       }
@@ -30,17 +39,18 @@ const TambahProduk = () => {
 
   // Save form data saat ada perubahan
   useEffect(() => {
-    if (formData.namaProduk || formData.harga || formData.deskripsi) {
-      localStorage.setItem("tambahProdukDraft", JSON.stringify(formData));
-    }
-  }, [formData]);
+    const draftData = {
+      formData,
+      ukuranList
+    };
+    localStorage.setItem("tambahProdukDraft", JSON.stringify(draftData));
+  }, [formData, ukuranList]);
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
 
     if (files.length === 0) return;
 
-    // Validasi jumlah gambar
     const totalImages = previewImages.length + files.length;
     if (totalImages > 5) {
       setMessage({
@@ -50,7 +60,6 @@ const TambahProduk = () => {
       return;
     }
 
-    // Validasi tipe file saja (TIDAK ADA BATASAN UKURAN)
     for (let file of files) {
       if (!file.type.startsWith("image/")) {
         setMessage({ type: "error", text: `${file.name} bukan file gambar` });
@@ -58,7 +67,6 @@ const TambahProduk = () => {
       }
     }
 
-    // Tambahkan gambar baru
     const newPreviews = files.map((file) => URL.createObjectURL(file));
     setPreviewImages((prev) => [...prev, ...newPreviews]);
     setImageFiles((prev) => [...prev, ...files]);
@@ -78,6 +86,45 @@ const TambahProduk = () => {
     }));
   };
 
+  // Fungsi untuk ukuran
+  const handleUkuranChange = (e) => {
+    const { name, value } = e.target;
+    setUkuranForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const tambahUkuran = () => {
+    if (!ukuranForm.nama.trim()) {
+      setMessage({ type: "error", text: "Nama ukuran harus diisi" });
+      return;
+    }
+
+    if (!ukuranForm.harga || ukuranForm.harga <= 0) {
+      setMessage({ type: "error", text: "Harga ukuran harus valid" });
+      return;
+    }
+
+    const newUkuran = {
+      id: Date.now().toString(),
+      nama: ukuranForm.nama.trim(),
+      harga: parseInt(ukuranForm.harga),
+    };
+
+    setUkuranList((prev) => [...prev, newUkuran]);
+    setUkuranForm({
+      nama: "",
+      harga: "",
+    });
+    setShowTambahUkuran(false);
+    setMessage({ type: "success", text: "Ukuran berhasil ditambahkan" });
+  };
+
+  const hapusUkuran = (id) => {
+    setUkuranList((prev) => prev.filter(ukuran => ukuran.id !== id));
+  };
+
   const clearDraft = () => {
     localStorage.removeItem("tambahProdukDraft");
   };
@@ -92,25 +139,37 @@ const TambahProduk = () => {
     });
 
     try {
+      // Validasi input
       if (!formData.namaProduk.trim()) {
         throw new Error("Nama produk harus diisi");
       }
-      if (!formData.harga || formData.harga <= 0) {
+
+      // Jika tidak ada ukuran, validasi harga default
+      if (ukuranList.length === 0 && (!formData.harga || formData.harga <= 0)) {
         throw new Error("Harga produk harus valid");
       }
+
       if (!formData.deskripsi.trim()) {
         throw new Error("Deskripsi produk harus diisi");
       }
+
       if (imageFiles.length === 0) {
         throw new Error("Minimal 1 gambar produk harus diupload");
       }
+
+      // Siapkan data untuk dikirim
+      const productData = {
+        ...formData,
+        harga: ukuranList.length > 0 ? 0 : parseInt(formData.harga), // Harga default 0 jika ada ukuran
+        ukuran: ukuranList.length > 0 ? ukuranList : null
+      };
 
       // Callback untuk update progress
       const onProgress = (progress) => {
         setCompressionProgress(progress);
       };
 
-      const result = await tambahProduk(formData, imageFiles, onProgress);
+      const result = await tambahProduk(productData, imageFiles, onProgress);
 
       setCompressionProgress(null);
 
@@ -125,6 +184,7 @@ const TambahProduk = () => {
         });
         setPreviewImages([]);
         setImageFiles([]);
+        setUkuranList([]);
 
         // Clear draft
         clearDraft();
@@ -142,6 +202,11 @@ const TambahProduk = () => {
     }
   };
 
+  // Format harga untuk display
+  const formatHarga = (harga) => {
+    return `Rp ${parseInt(harga).toLocaleString("id-ID")}`;
+  };
+
   return (
     <div className="w-full mx-auto">
       <div className="flex items-center gap-2 text-sm text-zinc-400 mb-3">
@@ -157,7 +222,7 @@ const TambahProduk = () => {
         <p className="text-zinc-400">
           Isi data produk dengan lengkap di bawah ini
         </p>
-        {(formData.namaProduk || formData.harga || formData.deskripsi) && (
+        {(formData.namaProduk || formData.harga || formData.deskripsi || ukuranList.length > 0) && (
           <p className="text-xs text-green-400 mt-2">
             ✓ Draft tersimpan otomatis
           </p>
@@ -218,10 +283,7 @@ const TambahProduk = () => {
               <div
                 className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                 style={{
-                  width: `${
-                    (compressionProgress.current / compressionProgress.total) *
-                    100
-                  }%`,
+                  width: `${(compressionProgress.current / compressionProgress.total) * 100}%`,
                 }}
               ></div>
             </div>
@@ -231,6 +293,7 @@ const TambahProduk = () => {
 
       <div className="w-full bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-sm shadow-lg">
         <div className="space-y-6">
+          {/* Bagian Foto Produk */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white">
               Foto Produk <span className="text-red-400">*</span>
@@ -300,6 +363,7 @@ const TambahProduk = () => {
             </p>
           </div>
 
+          {/* Nama Produk */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white">
               Nama Produk <span className="text-red-400">*</span>
@@ -320,27 +384,87 @@ const TambahProduk = () => {
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-white">
-              Harga Produk (Rp) <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="number"
-              name="harga"
-              value={formData.harga}
-              onChange={handleInputChange}
-              disabled={loading}
-              placeholder="Contoh: 25000"
-              min="0"
-              className="
-                w-full bg-white/5 border border-white/10 rounded-lg p-3 
-                text-sm text-white placeholder-zinc-500
-                focus:border-white/20 focus:outline-none
-                disabled:opacity-50 disabled:cursor-not-allowed
-              "
-            />
+          {/* Sistem Ukuran */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-white">
+                Ukuran & Harga
+                <span className="text-xs text-zinc-400 ml-2">
+                  ({ukuranList.length} ukuran ditambahkan)
+                </span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowTambahUkuran(true)}
+                className="
+                  text-sm bg-white/10 hover:bg-white/20 border border-white/10 
+                  px-3 py-1.5 rounded-lg transition
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                "
+                disabled={loading}
+              >
+                + Tambah Ukuran
+              </button>
+            </div>
+
+            {/* List Ukuran yang sudah ditambahkan */}
+            {ukuranList.length > 0 ? (
+              <div className="space-y-2">
+                {ukuranList.map((ukuran) => (
+                  <div key={ukuran.id} className="flex items-center justify-between p-3 border border-white/10 rounded-lg">
+                    <span className="font-medium text-white">{ukuran.nama}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-green-400">
+                        {formatHarga(ukuran.harga)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => hapusUkuran(ukuran.id)}
+                        className="text-red-400 hover:text-red-300 text-sm"
+                        disabled={loading}
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Harga Default (jika tidak ada ukuran)
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-white">
+                  Harga Produk (Rp) <span className="text-red-400">*</span>
+                  <span className="text-xs text-zinc-400 ml-2">
+                    (Harga default jika tidak ada ukuran)
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  name="harga"
+                  value={formData.harga}
+                  onChange={handleInputChange}
+                  disabled={loading || ukuranList.length > 0}
+                  placeholder="Contoh: 25000"
+                  min="0"
+                  className="
+                    w-full bg-white/5 border border-white/10 rounded-lg p-3 
+                    text-sm text-white placeholder-zinc-500
+                    focus:border-white/20 focus:outline-none
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                  "
+                />
+              </div>
+            )}
+
+            <p className="text-xs text-zinc-500">
+              {ukuranList.length > 0 
+                ? "Produk ini memiliki beberapa ukuran dengan harga berbeda."
+                : "Jika produk memiliki ukuran, klik 'Tambah Ukuran'. Jika tidak, isi harga default di atas."
+              }
+            </p>
           </div>
 
+          {/* Deskripsi */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white">
               Deskripsi Produk <span className="text-red-400">*</span>
@@ -361,6 +485,7 @@ const TambahProduk = () => {
             ></textarea>
           </div>
 
+          {/* Tombol Simpan */}
           <button
             type="button"
             onClick={handleSubmit}
@@ -388,11 +513,6 @@ const TambahProduk = () => {
                     stroke="currentColor"
                     strokeWidth="4"
                   ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
                 </svg>
                 Menyimpan...
               </>
@@ -402,6 +522,61 @@ const TambahProduk = () => {
           </button>
         </div>
       </div>
+
+      {/* Modal Tambah Ukuran */}
+      {showTambahUkuran && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-900 border border-white/10 rounded-xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4">Tambah Ukuran</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">
+                  Nama Ukuran <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="nama"
+                  value={ukuranForm.nama}
+                  onChange={handleUkuranChange}
+                  placeholder="Contoh: Small, Medium, Large, 250ml, 500ml"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">
+                  Harga (Rp) <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="harga"
+                  value={ukuranForm.harga}
+                  onChange={handleUkuranChange}
+                  placeholder="Contoh: 25000"
+                  min="0"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowTambahUkuran(false)}
+                className="flex-1 border border-white/10 py-2 px-4 rounded-lg hover:border-white/30 transition"
+              >
+                Batal
+              </button>
+              <button
+                onClick={tambahUkuran}
+                className="flex-1 bg-white/10 hover:bg-white/20 border border-white/10 py-2 px-4 rounded-lg transition"
+              >
+                Tambah
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { getProdukById, hapusProduk } from "../../../services/produk/ProdukServices";
 
 const DetailProduk = () => {
-  const { id } = useParams(); // Ambil ID dari URL
+  const { id } = useParams();
   const navigate = useNavigate();
   
   const [produk, setProduk] = useState(null);
@@ -41,11 +41,9 @@ const DetailProduk = () => {
     try {
       setDeleting(true);
       
-      // Ambil gambarPath jika ada untuk hapus dari storage
       const result = await hapusProduk(id, produk.gambarPath);
 
       if (result.success) {
-        // Redirect ke halaman produk setelah berhasil hapus
         navigate("/owner/produk");
       } else {
         alert(result.error || "Gagal menghapus produk");
@@ -57,6 +55,11 @@ const DetailProduk = () => {
       setDeleting(false);
       setShowDeleteConfirm(false);
     }
+  };
+
+  // Fungsi untuk format harga
+  const formatHarga = (harga) => {
+    return `Rp ${harga.toLocaleString("id-ID")}`;
   };
 
   // Loading State
@@ -102,7 +105,6 @@ const DetailProduk = () => {
     );
   }
 
-  // Jika produk tidak ada
   if (!produk) {
     return null;
   }
@@ -113,6 +115,20 @@ const DetailProduk = () => {
     : produk.gambar 
       ? [produk.gambar] 
       : [];
+
+  // Normalisasi ukuran ke array
+  const ukuranList = produk.ukuran && Array.isArray(produk.ukuran) 
+    ? produk.ukuran 
+    : [];
+
+  // Harga berdasarkan ukuran (jika ada) atau harga default
+  const getHargaByUkuran = (ukuranId) => {
+    if (ukuranList.length > 0) {
+      const ukuran = ukuranList.find(u => u.id === ukuranId);
+      return ukuran ? ukuran.harga : produk.harga;
+    }
+    return produk.harga;
+  };
 
   const currentImage = images[selectedImageIndex] || null;
 
@@ -229,10 +245,27 @@ const DetailProduk = () => {
           <div className="bg-white/5 border border-white/10 rounded-xl p-6">
             <h2 className="text-3xl font-bold mb-4">{produk.namaProduk}</h2>
             
-            <div className="flex items-baseline gap-2 mb-6">
-              <span className="text-3xl font-bold text-green-400">
-                Rp {produk.harga.toLocaleString("id-ID")}
-              </span>
+            {/* Harga Display */}
+            <div className="mb-6">
+              {ukuranList.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-zinc-400 text-sm">Harga berdasarkan ukuran:</p>
+                  {ukuranList.map((ukuran) => (
+                    <div key={ukuran.id} className="flex items-center justify-between">
+                      <span className="text-white">{ukuran.nama}</span>
+                      <span className="text-2xl font-bold text-green-400">
+                        {formatHarga(ukuran.harga)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-green-400">
+                    {formatHarga(produk.harga)}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -246,6 +279,14 @@ const DetailProduk = () => {
                   }
                 `}>
                   {produk.status || 'Aktif'}
+                </span>
+              </div>
+
+              {/* Info Ukuran */}
+              <div className="flex items-center justify-between py-2 border-b border-white/10">
+                <span className="text-zinc-400">Jumlah Ukuran</span>
+                <span className="font-medium">
+                  {ukuranList.length > 0 ? `${ukuranList.length} ukuran` : 'Tidak ada ukuran'}
                 </span>
               </div>
 
@@ -271,6 +312,35 @@ const DetailProduk = () => {
               )}
             </div>
           </div>
+
+          {/* Detail Ukuran */}
+          {ukuranList.length > 0 && (
+            <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+              <h3 className="text-lg font-semibold mb-4">Daftar Ukuran & Harga</h3>
+              <div className="space-y-3">
+                {ukuranList.map((ukuran) => (
+                  <div key={ukuran.id} className="flex items-center justify-between p-3 border border-white/10 rounded-lg">
+                    <div>
+                      <span className="font-medium text-white">{ukuran.nama}</span>
+                      {ukuran.deskripsi && (
+                        <p className="text-sm text-zinc-400 mt-1">{ukuran.deskripsi}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-green-400">
+                        {formatHarga(ukuran.harga)}
+                      </div>
+                      {ukuran.stok !== undefined && (
+                        <div className="text-sm text-zinc-400 mt-1">
+                          Stok: {ukuran.stok}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Deskripsi */}
           <div className="bg-white/5 border border-white/10 rounded-xl p-6">
