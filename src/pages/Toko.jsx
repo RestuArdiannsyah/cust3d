@@ -108,10 +108,11 @@ const Toko = () => {
         {/* Tombol Detail */}
         <Link
           to={`/checkout/${product.id}`}
+          state={{ product }} // Kirim data produk via state
           className="block w-full mt-3 py-3 px-4 text-center border font-semibold 
-                   border-white/20 rounded-lg cursor-pointer
-                   transition duration-300
-                   hover:bg-white hover:text-black"
+             border-white/20 rounded-lg cursor-pointer
+             transition duration-300
+             hover:bg-white hover:text-black"
         >
           Beli Sekarang
         </Link>
