@@ -53,7 +53,7 @@ export const getUserFromCache = async () => {
     
     if (response) {
       const userData = await response.json();
-      console.log('Data loaded from cache:', userData);
+      // console.log('Data loaded from cache:', userData);
       return userData;
     }
     console.log('No cache found');

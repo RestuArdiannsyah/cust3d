@@ -1,6 +1,5 @@
 // checkoutHelpers.js
 
-// Format harga ke Rupiah
 export const formatHarga = (harga) => {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -9,7 +8,6 @@ export const formatHarga = (harga) => {
   }).format(harga || 0);
 };
 
-// Format ukuran file
 export const formatFileSize = (bytes) => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -18,7 +16,6 @@ export const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-// Fungsi untuk convert file ke base64
 export const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -28,7 +25,6 @@ export const fileToBase64 = (file) => {
   });
 };
 
-// Hitung distribusi produk per gambar
 export const calculateProductDistribution = (quantity, uploadedImages) => {
   if (uploadedImages.length === 0) return [];
   
@@ -36,9 +32,7 @@ export const calculateProductDistribution = (quantity, uploadedImages) => {
   const totalProducts = quantity;
   const totalImages = uploadedImages.length;
   
-  // Jika jumlah gambar lebih banyak dari produk
   if (totalImages > totalProducts) {
-    // Setiap gambar dapat berisi 0-1 produk
     for (let i = 0; i < totalImages; i++) {
       if (i < totalProducts) {
         distribution.push({
@@ -57,14 +51,12 @@ export const calculateProductDistribution = (quantity, uploadedImages) => {
       }
     }
   } else {
-    // Normal case: distribusi produk ke gambar
     const baseProductsPerImage = Math.floor(totalProducts / totalImages);
     const remainder = totalProducts % totalImages;
     
     let currentProduct = 1;
     
     for (let i = 0; i < totalImages; i++) {
-      // Hitung berapa produk untuk gambar ini
       let productsForThisImage = baseProductsPerImage;
       if (i < remainder) {
         productsForThisImage += 1;
@@ -86,36 +78,135 @@ export const calculateProductDistribution = (quantity, uploadedImages) => {
   return distribution;
 };
 
-// Hitung subtotal berdasarkan harga satuan (ukuran yang dipilih) dan quantity
 export const calculateSubtotal = (hargaSatuan, quantity) => {
   return hargaSatuan * quantity;
 };
 
-// Hitung biaya pengiriman
-export const calculateShipping = (subtotal, shippingMethod) => {
-  switch (shippingMethod) {
-    case "reguler":
-      return subtotal > 500000 ? 0 : 15000;
-    case "express":
-      return 25000;
-    case "sameDay":
-      return 50000;
-    default:
-      return 0;
+const RAJAONGKIR_API_KEY = import.meta.env.VITE_API_KEY_RAJA_ONGKIR;
+const RAJAONGKIR_API_URL = "/api/rajaongkir/api/v1/calculate/domestic-cost";
+
+export const calculateShippingRajaOngkir = async (originId, destinationId, weight, courier) => {
+  try {
+    if (!RAJAONGKIR_API_KEY) {
+      return {
+        success: false,
+        error: "API key tidak ditemukan"
+      };
+    }
+
+    const form = new URLSearchParams();
+    form.append("origin", originId);
+    form.append("destination", destinationId);
+    form.append("weight", weight.toString());
+    form.append("courier", courier);
+    form.append("price", "lowest");
+
+    const response = await fetch(RAJAONGKIR_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: form
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+      const validServices = data.data.filter(item => 
+        item.cost !== undefined && item.cost !== null
+      );
+      
+      if (validServices.length === 0) {
+        return {
+          success: false,
+          error: "Tidak ada data ongkir tersedia"
+        };
+      }
+      
+      const cheapest = validServices.reduce((a, b) => 
+        a.cost < b.cost ? a : b
+      );
+      
+      return {
+        success: true,
+        cost: cheapest.cost,
+        etd: cheapest.etd || "1-3",
+        service: cheapest.service || cheapest.description || courier,
+        courier: courier
+      };
+    }
+    
+    return {
+      success: false,
+      error: "Format respons tidak dikenali"
+    };
+    
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
   }
 };
 
-// Hitung total
+export const getAllShippingCosts = async (originId, destinationId, weight) => {
+  const couriers = ["jne", "jnt", "sicepat", "ninja"];
+  const results = [];
+  
+  try {
+    const promises = couriers.map(courier => 
+      calculateShippingRajaOngkir(originId, destinationId, weight, courier)
+    );
+    
+    const shippingResults = await Promise.allSettled(promises);
+    
+    shippingResults.forEach((result, index) => {
+      const courier = couriers[index];
+      
+      if (result.status === "fulfilled") {
+        if (result.value.success) {
+          results.push({
+            courier: courier,
+            name: getCourierName(courier),
+            cost: result.value.cost,
+            etd: result.value.etd,
+            service: result.value.service
+          });
+        }
+      }
+    });
+    
+    results.sort((a, b) => a.cost - b.cost);
+    
+    return results;
+    
+  } catch (error) {
+    return [];
+  }
+};
+
+export const getCourierName = (code) => {
+  const couriers = {
+    jne: "JNE",
+    jnt: "J&T Express",
+    sicepat: "SiCepat",
+    ninja: "Ninja Express"
+  };
+  return couriers[code] || code;
+};
+
 export const calculateTotal = (subtotal, shippingCost) => {
   return subtotal + shippingCost;
 };
 
-// Cek apakah jumlah gambar sudah mencapai batas (sama dengan quantity)
 export const isImageLimitReached = (quantity, uploadedImages) => {
   return uploadedImages.length >= quantity;
 };
 
-// Fungsi untuk mendapatkan pesan upload error dengan kondisi baru
 export const getUploadError = (quantity, uploadedImages) => {
   if (uploadedImages.length === 0) {
     return `Anda perlu mengupload minimal 1 gambar`;
@@ -128,23 +219,6 @@ export const getUploadError = (quantity, uploadedImages) => {
   return "";
 };
 
-// Data shipping methods
-export const shippingMethods = [
-  {
-    id: "reguler",
-    name: "Reguler (1-3 hari)",
-  },
-  {
-    id: "express",
-    name: "Express (1 hari)",
-  },
-  {
-    id: "sameDay",
-    name: "Same Day Delivery",
-  },
-];
-
-// Load data dari localStorage
 export const loadLocalStorageData = (id) => {
   try {
     const savedData = localStorage.getItem(`checkout_${id}`);
@@ -153,56 +227,46 @@ export const loadLocalStorageData = (id) => {
     }
     return null;
   } catch (error) {
-    console.error('Error loading localStorage data:', error);
     return null;
   }
 };
 
-// Save data ke localStorage
 export const saveLocalStorageData = (id, data) => {
   try {
     localStorage.setItem(`checkout_${id}`, JSON.stringify(data));
     return true;
   } catch (error) {
-    console.error('Error saving to localStorage:', error);
     return false;
   }
 };
 
-// Clear data dari localStorage
 export const clearLocalStorageData = (id) => {
   try {
     localStorage.removeItem(`checkout_${id}`);
     return true;
   } catch (error) {
-    console.error('Error clearing localStorage data:', error);
     return false;
   }
 };
 
-// Validasi file upload dengan batas quantity
 export const validateUploadedFiles = (files, uploadedImages, quantity) => {
   const errors = [];
   
-  // Validasi batas jumlah gambar
   if (uploadedImages.length + files.length > quantity) {
     const remainingSlots = quantity - uploadedImages.length;
     errors.push(`Maksimal upload ${quantity} gambar. Sisa slot: ${remainingSlots}`);
   }
   
-  // Validasi ukuran file (maks 5MB)
   const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
   if (oversizedFiles.length > 0) {
     errors.push("Beberapa file melebihi ukuran maksimal 5MB");
   }
   
-  // Validasi tipe file
   const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
   if (invalidFiles.length > 0) {
     errors.push("Beberapa file bukan gambar yang valid (format: JPG, PNG, GIF)");
   }
   
-  // Validasi jumlah file
   if (files.length === 0) {
     errors.push("Tidak ada file yang dipilih");
   }
@@ -210,7 +274,6 @@ export const validateUploadedFiles = (files, uploadedImages, quantity) => {
   return errors;
 };
 
-// Process uploaded images dengan error handling
 export const processUploadedImages = async (files) => {
   const newImages = [];
   
@@ -232,17 +295,10 @@ export const processUploadedImages = async (files) => {
     
     return newImages;
   } catch (error) {
-    console.error("Error processing uploaded images:", error);
     throw new Error("Gagal memproses gambar: " + error.message);
   }
 };
 
-// Fungsi helper untuk mendapatkan extension file
-export const getFileExtension = (fileName) => {
-  return fileName.slice((fileName.lastIndexOf(".") - 1 >>> 0) + 2);
-};
-
-// Fungsi untuk membersihkan URL object untuk mencegah memory leak
 export const cleanupImageURLs = (images) => {
   images.forEach(img => {
     if (img.preview && img.preview.startsWith('blob:')) {
@@ -251,7 +307,6 @@ export const cleanupImageURLs = (images) => {
   });
 };
 
-// Fungsi untuk validasi quantity
 export const validateQuantity = (quantity, minQuantity = 5) => {
   const errors = [];
   
@@ -266,25 +321,15 @@ export const validateQuantity = (quantity, minQuantity = 5) => {
   return errors;
 };
 
-// Fungsi untuk menghapus gambar berlebih berdasarkan quantity baru
 export const removeExcessImages = (uploadedImages, newQuantity) => {
   if (uploadedImages.length <= newQuantity) {
-    return uploadedImages; // Tidak ada gambar berlebih
+    return uploadedImages;
   }
   
-  // Hapus gambar yang terakhir ditambahkan (dari index tertinggi)
   const imagesToKeep = uploadedImages.slice(0, newQuantity);
   
-  // Cleanup URL object untuk gambar yang dihapus
   const imagesToRemove = uploadedImages.slice(newQuantity);
   cleanupImageURLs(imagesToRemove);
   
   return imagesToKeep;
-};
-
-
-
-// Untuk backward compatibility, tetap pertahankan fungsi yang menerima produk
-export const calculateSubtotalFromProduk = (produk, quantity) => {
-  return (produk?.harga || 0) * quantity;
 };

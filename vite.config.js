@@ -1,3 +1,4 @@
+// vite.config.js
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -15,11 +16,16 @@ export default defineConfig(({ mode }) => {
           target: 'https://rajaongkir.komerce.id',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/rajaongkir/, ''),
-          configure: (proxy) => {
-            proxy.on('proxyReq', (proxyReq) => {
-              // Gunakan API key dari .env
-              proxyReq.setHeader('key', env.VITE_API_KEY_RAJA_ONGKIR);
-              console.log('🔑 API Key:', env.VITE_API_KEY_RAJA_ONGKIR ? 'Loaded' : 'Missing');
+          headers: {
+            'key': env.VITE_API_KEY_RAJA_ONGKIR || '',
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          configure: (proxy, _options) => {
+            proxy.on('proxyReq', (proxyReq, req, _res) => {
+              console.log('🔑 Proxying request to:', req.url);
+            });
+            proxy.on('proxyRes', (proxyRes, req, _res) => {
+              console.log('🔑 Received response from:', req.url, 'status:', proxyRes.statusCode);
             });
           }
         }
