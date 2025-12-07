@@ -584,7 +584,7 @@ const Checkout = () => {
           </button>
 
           <h1 className="font-extrabold tracking-tighter text-4xl md:text-5xl mb-2">
-            Ringkasan Pesanan
+            Pree Order 15 Hari
           </h1>
 
           {userData && userAddress ? (
