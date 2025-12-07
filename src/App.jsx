@@ -34,6 +34,7 @@ const PesananOwner = lazy(() => import("./pages/owner/Pesanan"));
 const Pelanggan = lazy(() => import("./pages/owner/Pelanggan"));
 const Laporan = lazy(() => import("./pages/owner/Laporan"));
 const PengaturanOwner = lazy(() => import("./pages/owner/Pengaturan"));
+const TokoOwner = lazy(() => import("./pages/owner/TokoOwner"));
 const TambahProduk = lazy(() => import("./pages/owner/produk/TambahProduk"));
 const DetailProduk = lazy(() => import("./pages/owner/produk/DetailProduk"));
 
@@ -149,6 +150,10 @@ const router = createBrowserRouter([
       {
         path: "pengaturan", // /owner/pengaturan
         element: <PengaturanOwner />,
+      },
+      {
+        path: "tokoowner", // /owner/toko
+        element: <TokoOwner />,
       },
       {
         path: "profile", // /owner/profile

@@ -6,6 +6,7 @@ import {
   Settings,
   Package,
   BarChart3,
+  Store,
   X,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
@@ -30,6 +31,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     { path: "/owner/pelanggan", label: "Pelanggan", icon: Users },
     { path: "/owner/laporan", label: "Laporan", icon: BarChart3 },
     { path: "/owner/pengaturan", label: "Pengaturan", icon: Settings },
+    { path: "/owner/tokoowner", label: "toko", icon: Store },
   ];
 
   return (
