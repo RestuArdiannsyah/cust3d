@@ -1,5 +1,6 @@
 // checkoutHelpers.js
 
+// ==================== FORMATTING UTILITIES ====================
 export const formatHarga = (harga) => {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -16,6 +17,7 @@ export const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+// ==================== IMAGE HANDLING ====================
 export const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -78,10 +80,16 @@ export const calculateProductDistribution = (quantity, uploadedImages) => {
   return distribution;
 };
 
+// ==================== CALCULATION UTILITIES ====================
 export const calculateSubtotal = (hargaSatuan, quantity) => {
   return hargaSatuan * quantity;
 };
 
+export const calculateTotal = (subtotal, shippingCost) => {
+  return subtotal + shippingCost;
+};
+
+// ==================== SHIPPING SERVICES ====================
 const RAJAONGKIR_API_KEY = import.meta.env.VITE_API_KEY_RAJA_ONGKIR;
 const RAJAONGKIR_API_URL = "/api/rajaongkir/api/v1/calculate/domestic-cost";
 
@@ -94,19 +102,19 @@ export const calculateShippingRajaOngkir = async (originId, destinationId, weigh
       };
     }
 
-    const form = new URLSearchParams();
-    form.append("origin", originId);
-    form.append("destination", destinationId);
-    form.append("weight", weight.toString());
-    form.append("courier", courier);
-    form.append("price", "lowest");
+    const formData = new URLSearchParams();
+    formData.append("origin", originId);
+    formData.append("destination", destinationId);
+    formData.append("weight", weight.toString());
+    formData.append("courier", courier);
+    formData.append("price", "lowest");
 
     const response = await fetch(RAJAONGKIR_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: form
+      body: formData
     });
 
     if (!response.ok) {
@@ -167,16 +175,14 @@ export const getAllShippingCosts = async (originId, destinationId, weight) => {
     shippingResults.forEach((result, index) => {
       const courier = couriers[index];
       
-      if (result.status === "fulfilled") {
-        if (result.value.success) {
-          results.push({
-            courier: courier,
-            name: getCourierName(courier),
-            cost: result.value.cost,
-            etd: result.value.etd,
-            service: result.value.service
-          });
-        }
+      if (result.status === "fulfilled" && result.value.success) {
+        results.push({
+          courier: courier,
+          name: getCourierName(courier),
+          cost: result.value.cost,
+          etd: result.value.etd,
+          service: result.value.service
+        });
       }
     });
     
@@ -190,26 +196,23 @@ export const getAllShippingCosts = async (originId, destinationId, weight) => {
 };
 
 export const getCourierName = (code) => {
-  const couriers = {
+  const courierMap = {
     jne: "JNE",
     jnt: "J&T Express",
     sicepat: "SiCepat",
     ninja: "Ninja Express"
   };
-  return couriers[code] || code;
+  return courierMap[code] || code;
 };
 
-export const calculateTotal = (subtotal, shippingCost) => {
-  return subtotal + shippingCost;
-};
-
+// ==================== VALIDATION UTILITIES ====================
 export const isImageLimitReached = (quantity, uploadedImages) => {
   return uploadedImages.length >= quantity;
 };
 
 export const getUploadError = (quantity, uploadedImages) => {
   if (uploadedImages.length === 0) {
-    return `Anda perlu mengupload minimal 1 gambar`;
+    return "Anda perlu mengupload minimal 1 gambar";
   }
   
   if (isImageLimitReached(quantity, uploadedImages)) {
@@ -217,36 +220,6 @@ export const getUploadError = (quantity, uploadedImages) => {
   }
   
   return "";
-};
-
-export const loadLocalStorageData = (id) => {
-  try {
-    const savedData = localStorage.getItem(`checkout_${id}`);
-    if (savedData) {
-      return JSON.parse(savedData);
-    }
-    return null;
-  } catch (error) {
-    return null;
-  }
-};
-
-export const saveLocalStorageData = (id, data) => {
-  try {
-    localStorage.setItem(`checkout_${id}`, JSON.stringify(data));
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
-
-export const clearLocalStorageData = (id) => {
-  try {
-    localStorage.removeItem(`checkout_${id}`);
-    return true;
-  } catch (error) {
-    return false;
-  }
 };
 
 export const validateUploadedFiles = (files, uploadedImages, quantity) => {
@@ -274,6 +247,21 @@ export const validateUploadedFiles = (files, uploadedImages, quantity) => {
   return errors;
 };
 
+export const validateQuantity = (quantity, minQuantity = 5) => {
+  const errors = [];
+  
+  if (quantity < minQuantity) {
+    errors.push(`Jumlah minimal adalah ${minQuantity} produk`);
+  }
+  
+  if (!Number.isInteger(quantity)) {
+    errors.push("Jumlah harus berupa angka bulat");
+  }
+  
+  return errors;
+};
+
+// ==================== IMAGE PROCESSING ====================
 export const processUploadedImages = async (files) => {
   const newImages = [];
   
@@ -307,29 +295,43 @@ export const cleanupImageURLs = (images) => {
   });
 };
 
-export const validateQuantity = (quantity, minQuantity = 5) => {
-  const errors = [];
-  
-  if (quantity < minQuantity) {
-    errors.push(`Jumlah minimal adalah ${minQuantity} produk`);
-  }
-  
-  if (!Number.isInteger(quantity)) {
-    errors.push("Jumlah harus berupa angka bulat");
-  }
-  
-  return errors;
-};
-
 export const removeExcessImages = (uploadedImages, newQuantity) => {
   if (uploadedImages.length <= newQuantity) {
     return uploadedImages;
   }
   
   const imagesToKeep = uploadedImages.slice(0, newQuantity);
-  
   const imagesToRemove = uploadedImages.slice(newQuantity);
+  
   cleanupImageURLs(imagesToRemove);
   
   return imagesToKeep;
+};
+
+// ==================== LOCAL STORAGE UTILITIES ====================
+export const loadLocalStorageData = (id) => {
+  try {
+    const savedData = localStorage.getItem(`checkout_${id}`);
+    return savedData ? JSON.parse(savedData) : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+export const saveLocalStorageData = (id, data) => {
+  try {
+    localStorage.setItem(`checkout_${id}`, JSON.stringify(data));
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
+export const clearLocalStorageData = (id) => {
+  try {
+    localStorage.removeItem(`checkout_${id}`);
+    return true;
+  } catch (error) {
+    return false;
+  }
 };
